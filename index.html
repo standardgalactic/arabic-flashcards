@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Arabic Trainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    /* ============= Retro Monitor Theme ============= */
+    :root {
+      --bg: #020b02;
+      --bg-panel: #021a02;
+      --fg: #00ff8a;
+      --accent: #00ffaa;
+      --danger: #ff4d4d;
+      --muted: #00aa66;
+      --border: #00aa55;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Fira Code", "JetBrains Mono", Consolas, monospace;
+      background: radial-gradient(circle at top, #033 0%, #000 50%, #000 100%);
+      color: var(--fg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .crt {
+      position: relative;
+      max-width: 900px;
+      width: 100%;
+      padding: 18px;
+      border-radius: 8px;
+      background: var(--bg-panel);
+      border: 2px solid var(--border);
+      box-shadow:
+        0 0 10px rgba(0, 255, 140, 0.4),
+        0 0 80px rgba(0, 255, 140, 0.1) inset;
+      overflow: hidden;
+    }
+
+    .crt::before {
+      /* scanline + subtle vignette */
+      content: "";
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(0, 255, 120, 0.08),
+          rgba(0, 255, 120, 0.08) 1px,
+          transparent 1px,
+          transparent 3px
+        );
+      mix-blend-mode: soft-light;
+      opacity: 0.7;
+    }
+
+    .crt::after {
+      /* glow frame */
+      content: "";
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      box-shadow:
+        0 0 20px rgba(0, 255, 120, 0.5),
+        0 0 60px rgba(0, 255, 120, 0.2);
+      opacity: 0.3;
+    }
+
+    .crt-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 6px var(--accent),
+        0 0 14px rgba(0, 255, 170, 0.7);
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 800px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ============= Panels ============= */
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      background: rgba(0, 0, 0, 0.4);
+    }
+
+    .panel-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    /* ============= Controls ============= */
+    label {
+      font-size: 0.8rem;
+      display: block;
+      margin-top: 6px;
+      margin-bottom: 3px;
+    }
+
+    select, button {
+      font-family: inherit;
+      font-size: 0.9rem;
+      background: #000;
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      outline: none;
+    }
+
+    select:focus, button:focus {
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    button {
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #00150a;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+
+    button.primary:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    button.small {
+      font-size: 0.75rem;
+      padding: 3px 6px;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      align-items: center;
+    }
+
+    /* ============= Quiz Area ============= */
+    .prompt {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      background: rgba(0, 10, 0, 0.8);
+    }
+
+    .prompt-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .prompt-main {
+      font-size: 1.3rem;
+      line-height: 1.4;
+    }
+
+    .prompt-main .arabic {
+      font-size: 1.6rem;
+      direction: rtl;
+      unicode-bidi: bidi-override;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .prompt-main .translit {
+      font-size: 0.9rem;
+      color: var(--muted);
+      display: block;
+      margin-top: 2px;
+    }
+
+    .choices {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .choice-btn {
+      text-align: left;
+      padding: 6px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.7);
+      transition: background 0.12s ease, transform 0.05s ease, box-shadow 0.12s ease;
+      position: relative;
+    }
+
+    .choice-btn:hover:not(.disabled) {
+      background: rgba(0, 40, 20, 0.9);
+      transform: translateY(-1px);
+      box-shadow: 0 0 6px rgba(0, 255, 120, 0.4);
+    }
+
+    .choice-btn.disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .choice-btn.correct {
+      border-color: var(--accent);
+      background: rgba(0, 80, 40, 0.9);
+      box-shadow: 0 0 10px rgba(0, 255, 160, 0.6);
+    }
+
+    .choice-btn.incorrect {
+      border-color: var(--danger);
+      background: rgba(60, 0, 0, 0.9);
+      box-shadow: 0 0 10px rgba(255, 80, 80, 0.7);
+    }
+
+    .choice-label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      margin-right: 6px;
+    }
+
+    .choice-text-ar {
+      direction: rtl;
+      unicode-bidi: bidi-override;
+      font-size: 1.1rem;
+    }
+
+    .choice-text-en {
+      font-size: 0.95rem;
+    }
+
+    .choice-translit {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    /* ============= Feedback & Stats ============= */
+    .feedback {
+      min-height: 1.4em;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+
+    .feedback.good {
+      color: var(--accent);
+    }
+
+    .feedback.bad {
+      color: var(--danger);
+    }
+
+    .stats {
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .stats span {
+      white-space: nowrap;
+    }
+
+    .deck-indicator {
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .deck-indicator strong {
+      color: var(--accent);
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      margin-left: 4px;
+      color: var(--accent);
+    }
+
+    .message {
+      font-size: 0.8rem;
+      margin-top: 6px;
+      color: var(--accent);
+    }
+
+    .message.downgrade {
+      color: var(--danger);
+    }
+
+    .muted-link {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<div class="crt">
+  <div class="crt-inner">
+    <h1>Retro Arabic Trainer</h1>
+    <div class="subtitle">
+      Adaptive multi-choice decks — Arabic vocabulary trainer.
+    </div>
+
+    <div class="layout">
+      <!-- ================= QUIZ PANEL ================= -->
+      <div class="panel">
+        <div class="panel-title">Session</div>
+
+        <div class="prompt">
+          <div class="prompt-label" id="prompt-label">Prompt</div>
+          <div class="prompt-main" id="prompt-main">
+            Press <strong>Next Card</strong> to begin.
+          </div>
+        </div>
+
+        <div class="choices" id="choices"></div>
+
+        <div class="feedback" id="feedback"></div>
+
+        <div class="controls-row">
+          <button class="primary" id="next-btn">Next Card</button>
+          <button class="small" id="show-answer-btn">Reveal Answer</button>
+        </div>
+
+        <div class="stats" id="stats"></div>
+      </div>
+
+      <!-- ================= CONTROL PANEL ================= -->
+      <div class="panel">
+        <div class="panel-title">Control</div>
+
+        <label for="mode-select">Mode</label>
+        <select id="mode-select">
+          <option value="ar_en">Arabic → English</option>
+          <option value="en_ar">English → Arabic</option>
+          <option value="mixed">Mixed</option>
+        </select>
+
+        <label for="deck-select">Deck (level)</label>
+        <select id="deck-select"></select>
+
+        <div class="deck-indicator" id="deck-indicator"></div>
+
+        <div class="message" id="level-message"></div>
+
+        <div class="controls-row" style="margin-top:10px;">
+          <button class="small" id="reset-progress-btn">Reset Progress</button>
+          <span class="muted-link" id="debug-toggle">toggle debug</span>
+        </div>
+
+        <div id="debug-info" style="display:none; margin-top:6px; font-size:0.75rem; color:var(--muted);">
+          <div>Current deck: <span id="dbg-deck"></span></div>
+          <div>Streak: <span id="dbg-streak"></span></div>
+          <div>Total answered: <span id="dbg-total"></span></div>
+          <div>Total correct: <span id="dbg-correct"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ================== DATA ==================
+  /**
+   * Each deck: name + array of cards.
+   * Each card has Arabic, transliteration, and English gloss.
+   */
+  const DECKS = [
+    {
+      name: "Deck 1 — Greetings & Basics",
+      cards: [
+        { arabic: "مرحباً", translit: "marḥaban", english: "hello" },
+        { arabic: "السلام عليكم", translit: "as-salāmu ʿalaykum", english: "peace be upon you" },
+        { arabic: "وعليكم السلام", translit: "wa ʿalaykum as-salām", english: "and peace be upon you" },
+        { arabic: "صباح الخير", translit: "ṣabāḥ al-khayr", english: "good morning" },
+        { arabic: "مساء الخير", translit: "masāʾ al-khayr", english: "good evening" },
+        { arabic: "مع السلامة", translit: "maʿa s-salāma", english: "goodbye" },
+        { arabic: "نعم", translit: "naʿam", english: "yes" },
+        { arabic: "لا", translit: "lā", english: "no" },
+        { arabic: "من فضلك", translit: "min faḍlik", english: "please" },
+        { arabic: "شكراً", translit: "shukran", english: "thank you" }
+      ]
+    },
+    {
+      name: "Deck 2 — People & Pronouns",
+      cards: [
+        { arabic: "أنا", translit: "anā", english: "I / me" },
+        { arabic: "أنتَ", translit: "anta", english: "you (masculine)" },
+        { arabic: "أنتِ", translit: "anti", english: "you (feminine)" },
+        { arabic: "هو", translit: "huwa", english: "he" },
+        { arabic: "هي", translit: "hiya", english: "she" },
+        { arabic: "نحن", translit: "naḥnu", english: "we" },
+        { arabic: "هم", translit: "hum", english: "they (masc.)" },
+        { arabic: "هنَّ", translit: "hunna", english: "they (fem.)" },
+        { arabic: "اسمي", translit: "ismī", english: "my name" },
+        { arabic: "اسمك؟", translit: "ismuk?", english: "what is your name?" }
+      ]
+    },
+    {
+      name: "Deck 3 — Numbers & Colors",
+      cards: [
+        { arabic: "واحد", translit: "wāḥid", english: "one" },
+        { arabic: "اثنان", translit: "ithnān", english: "two" },
+        { arabic: "ثلاثة", translit: "thalātha", english: "three" },
+        { arabic: "أحمر", translit: "aḥmar", english: "red" },
+        { arabic: "أخضر", translit: "akhḍar", english: "green" },
+        { arabic: "أزرق", translit: "azraq", english: "blue" },
+        { arabic: "أصفر", translit: "aṣfar", english: "yellow" },
+        { arabic: "أسود", translit: "aswad", english: "black" },
+        { arabic: "أبيض", translit: "abyaḍ", english: "white" },
+        { arabic: "رمادي", translit: "ramādī", english: "gray" }
+      ]
+    },
+    {
+      name: "Deck 4 — Everyday Phrases",
+      cards: [
+        { arabic: "كيف الحال؟", translit: "kayfa al-ḥāl?", english: "how are you?" },
+        { arabic: "أنا بخير", translit: "anā bikhayr", english: "I am fine" },
+        { arabic: "أين الحمام؟", translit: "ayna al-ḥammām?", english: "where is the bathroom?" },
+        { arabic: "كم السعر؟", translit: "kam as-siʿr?", english: "how much is it?" },
+        { arabic: "لا أفهم", translit: "lā afham", english: "I don't understand" },
+        { arabic: "تحدث ببطء", translit: "taḥaddath bi-buṭʾ", english: "speak slowly" },
+        { arabic: "ممكن مرة أخرى؟", translit: "mumkin marra ukhrā?", english: "could you repeat?" },
+        { arabic: "أنا من كندا", translit: "anā min Kanda", english: "I am from Canada" },
+        { arabic: "أحب العربية", translit: "uḥibbu al-ʿarabiyya", english: "I love Arabic" },
+        { arabic: "أدرس العربية", translit: "adrusu al-ʿarabiyya", english: "I study Arabic" }
+      ]
+    }
+  ];
+
+  // ================== STATE & STORAGE ==================
+  const STORAGE_KEY = "retro_arabic_trainer_state_v1";
+
+  const defaultState = {
+    mode: "ar_en",        // "ar_en" | "en_ar" | "mixed"
+    currentDeckIndex: 0,
+    streak: 0,
+    totalAnswered: 0,
+    totalCorrect: 0
+  };
+
+  let state = loadState();
+
+  let currentCard = null;
+  let currentChoices = [];
+  let answered = false;
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { ...defaultState };
+      const parsed = JSON.parse(raw);
+      return { ...defaultState, ...parsed }; // fill missing fields
+    } catch (e) {
+      return { ...defaultState };
+    }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      // ignore storage failures
+    }
+  }
+
+  function resetProgress() {
+    state = { ...defaultState };
+    saveState();
+    updateUIFromState();
+    setFeedback("Progress reset. Back to Deck 1.", "good");
+    setLevelMessage("");
+  }
+
+  // ================== UTILS ==================
+  function randomInt(max) {
+    return Math.floor(Math.random() * max);
+  }
+
+  function shuffleArray(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = randomInt(i + 1);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function pickRandomCard(deckIndex) {
+    const deck = DECKS[deckIndex];
+    if (!deck || deck.cards.length === 0) return null;
+    const idx = randomInt(deck.cards.length);
+    return deck.cards[idx];
+  }
+
+  function pickChoices(deckIndex, correctCard, count) {
+    const deck = DECKS[deckIndex];
+    const pool = deck.cards.filter(c => c !== correctCard);
+    const shuffled = shuffleArray(pool);
+    const distractors = shuffled.slice(0, Math.max(0, count - 1));
+    const all = shuffleArray([correctCard, ...distractors]);
+    return all;
+  }
+
+  function effectiveMode() {
+    if (state.mode === "mixed") {
+      return Math.random() < 0.5 ? "ar_en" : "en_ar";
+    }
+    return state.mode;
+  }
+
+  // ================== DOM HOOKS ==================
+  const promptLabelEl = document.getElementById("prompt-label");
+  const promptMainEl = document.getElementById("prompt-main");
+  const choicesEl = document.getElementById("choices");
+  const feedbackEl = document.getElementById("feedback");
+  const statsEl = document.getElementById("stats");
+  const deckSelectEl = document.getElementById("deck-select");
+  const deckIndicatorEl = document.getElementById("deck-indicator");
+  const modeSelectEl = document.getElementById("mode-select");
+  const nextBtn = document.getElementById("next-btn");
+  const showAnswerBtn = document.getElementById("show-answer-btn");
+  const levelMessageEl = document.getElementById("level-message");
+  const resetProgressBtn = document.getElementById("reset-progress-btn");
+
+  const dbgToggle = document.getElementById("debug-toggle");
+  const dbgInfo = document.getElementById("debug-info");
+  const dbgDeck = document.getElementById("dbg-deck");
+  const dbgStreak = document.getElementById("dbg-streak");
+  const dbgTotal = document.getElementById("dbg-total");
+  const dbgCorrect = document.getElementById("dbg-correct");
+
+  // ================== UI UPDATE ==================
+  function setFeedback(text, kind) {
+    feedbackEl.textContent = text || "";
+    feedbackEl.className = "feedback";
+    if (kind === "good") feedbackEl.classList.add("good");
+    if (kind === "bad") feedbackEl.classList.add("bad");
+  }
+
+  function setLevelMessage(text, downgrade = false) {
+    levelMessageEl.textContent = text || "";
+    levelMessageEl.className = "message";
+    if (downgrade) levelMessageEl.classList.add("downgrade");
+  }
+
+  function updateStats() {
+    const accuracy =
+      state.totalAnswered > 0
+        ? Math.round((state.totalCorrect / state.totalAnswered) * 100)
+        : 0;
+
+    statsEl.innerHTML = `
+      <span>Deck: <strong>${state.currentDeckIndex + 1}</strong> / ${DECKS.length}</span>
+      <span>Streak: <strong>${state.streak}</strong></span>
+      <span>Answered: ${state.totalAnswered}</span>
+      <span>Correct: ${state.totalCorrect}</span>
+      <span>Accuracy: ${accuracy}%</span>
+    `;
+
+    dbgDeck.textContent = state.currentDeckIndex;
+    dbgStreak.textContent = state.streak;
+    dbgTotal.textContent = state.totalAnswered;
+    dbgCorrect.textContent = state.totalCorrect;
+  }
+
+  function populateDeckSelect() {
+    deckSelectEl.innerHTML = "";
+    DECKS.forEach((deck, idx) => {
+      const opt = document.createElement("option");
+      opt.value = String(idx);
+      opt.textContent = `${idx + 1}: ${deck.name}`;
+      deckSelectEl.appendChild(opt);
+    });
+  }
+
+  function updateDeckIndicator() {
+    const deck = DECKS[state.currentDeckIndex];
+    deckIndicatorEl.innerHTML = `
+      Current deck: <strong>${state.currentDeckIndex + 1}</strong> / ${DECKS.length}
+      <div style="margin-top:2px; font-size:0.78rem; color:var(--muted);">
+        ${deck.name}
+      </div>
+    `;
+  }
+
+  function updateUIFromState() {
+    modeSelectEl.value = state.mode;
+    deckSelectEl.value = String(state.currentDeckIndex);
+    updateDeckIndicator();
+    updateStats();
+  }
+
+  // ================== QUIZ LOGIC ==================
+  function showCard() {
+    const deckIndex = state.currentDeckIndex;
+    const deck = DECKS[deckIndex];
+    if (!deck) {
+      promptMainEl.textContent = "No deck found.";
+      return;
+    }
+
+    const card = pickRandomCard(deckIndex);
+    if (!card) {
+      promptMainEl.textContent = "No cards in this deck.";
+      return;
+    }
+
+    currentCard = card;
+    currentChoices = pickChoices(deckIndex, card, 4);
+    answered = false;
+    setFeedback("");
+    setLevelMessage("");
+
+    const mode = effectiveMode();
+    let isArabicPrompt = (mode === "ar_en");
+
+    // Prompt
+    promptLabelEl.textContent = isArabicPrompt ? "Arabic → English" : "English → Arabic";
+    if (mode === "mixed") {
+      promptLabelEl.textContent += " (mixed)";
+    }
+
+    if (isArabicPrompt) {
+      promptMainEl.innerHTML = `
+        <span class="arabic">${card.arabic}</span>
+        <span class="translit">${card.translit}</span>
+      `;
+    } else {
+      promptMainEl.textContent = card.english;
+    }
+
+    // Choices
+    choicesEl.innerHTML = "";
+    currentChoices.forEach((choiceCard, index) => {
+      const btn = document.createElement("button");
+      btn.className = "choice-btn";
+      btn.dataset.index = String(index);
+
+      const labelSpan = document.createElement("span");
+      labelSpan.className = "choice-label";
+      labelSpan.textContent = String.fromCharCode(65 + index) + ".";
+
+      const mainSpan = document.createElement("span");
+      const translitSpan = document.createElement("span");
+      translitSpan.className = "choice-translit";
+
+      const isCorrect = (choiceCard === card);
+      btn.dataset.correct = isCorrect ? "true" : "false";
+
+      if (isArabicPrompt) {
+        // Show English glosses
+        mainSpan.className = "choice-text-en";
+        mainSpan.textContent = choiceCard.english;
+        translitSpan.textContent = "";
+      } else {
+        // Show Arabic options with transliteration
+        mainSpan.className = "choice-text-ar";
+        mainSpan.textContent = choiceCard.arabic;
+        translitSpan.textContent = choiceCard.translit;
+      }
+
+      btn.appendChild(labelSpan);
+      btn.appendChild(mainSpan);
+      if (!isArabicPrompt) {
+        btn.appendChild(translitSpan);
+      }
+
+      btn.addEventListener("click", () => handleChoiceClick(btn));
+      choicesEl.appendChild(btn);
+    });
+  }
+
+  function handleChoiceClick(btn) {
+    if (answered || !currentCard) return;
+
+    answered = true;
+
+    const correct = btn.dataset.correct === "true";
+    const buttons = Array.from(choicesEl.querySelectorAll(".choice-btn"));
+
+    buttons.forEach(b => {
+      b.classList.add("disabled");
+      if (b.dataset.correct === "true") {
+        b.classList.add("correct");
+      }
+    });
+
+    if (!correct) {
+      btn.classList.add("incorrect");
+    }
+
+    // Stats update
+    state.totalAnswered += 1;
+    if (correct) {
+      state.totalCorrect += 1;
+      state.streak += 1;
+      setFeedback("Correct.", "good");
+      maybeLevelUp();
+    } else {
+      // mistake: reset streak, move down a deck if possible
+      state.streak = 0;
+      const oldDeck = state.currentDeckIndex;
+      if (state.currentDeckIndex > 0) {
+        state.currentDeckIndex -= 1;
+        setLevelMessage(`Mistake detected — moving down to Deck ${state.currentDeckIndex + 1}.`, true);
+      } else {
+        setLevelMessage("Mistake — staying at the first deck for now.", true);
+      }
+      if (oldDeck !== state.currentDeckIndex) {
+        deckSelectEl.value = String(state.currentDeckIndex);
+        updateDeckIndicator();
+      }
+      setFeedback("Incorrect.", "bad");
+    }
+
+    saveState();
+    updateStats();
+  }
+
+  function maybeLevelUp() {
+    if (state.streak >= 10) {
+      const oldDeck = state.currentDeckIndex;
+      const newDeck = Math.min(DECKS.length - 1, state.currentDeckIndex + 2);
+      state.currentDeckIndex = newDeck;
+      state.streak = 0;
+      deckSelectEl.value = String(state.currentDeckIndex);
+      updateDeckIndicator();
+      if (newDeck > oldDeck) {
+        setLevelMessage(`Great streak — jumping up to Deck ${newDeck + 1}!`);
+      } else {
+        setLevelMessage("You reached the top deck. Keep going!");
+      }
+    }
+  }
+
+  function revealAnswer() {
+    if (!currentCard || !choicesEl.children.length) return;
+    const buttons = Array.from(choicesEl.querySelectorAll(".choice-btn"));
+    buttons.forEach(btn => {
+      if (btn.dataset.correct === "true") {
+        btn.classList.add("correct");
+      }
+    });
+  }
+
+  // ================== EVENT HANDLERS ==================
+  modeSelectEl.addEventListener("change", () => {
+    state.mode = modeSelectEl.value;
+    saveState();
+    setFeedback(`Mode set to: ${modeSelectEl.options[modeSelectEl.selectedIndex].text}`, "good");
+  });
+
+  deckSelectEl.addEventListener("change", () => {
+    const idx = parseInt(deckSelectEl.value, 10);
+    if (Number.isFinite(idx) && idx >= 0 && idx < DECKS.length) {
+      state.currentDeckIndex = idx;
+      state.streak = 0; // reset streak when manually changing deck
+      saveState();
+      updateDeckIndicator();
+      updateStats();
+      setLevelMessage(`Switched to Deck ${idx + 1}. Streak reset.`);
+    }
+  });
+
+  nextBtn.addEventListener("click", () => {
+    showCard();
+  });
+
+  showAnswerBtn.addEventListener("click", () => {
+    revealAnswer();
+  });
+
+  resetProgressBtn.addEventListener("click", () => {
+    if (confirm("Reset all your progress and start from Deck 1?")) {
+      resetProgress();
+    }
+  });
+
+  dbgToggle.addEventListener("click", () => {
+    dbgInfo.style.display = dbgInfo.style.display === "none" ? "block" : "none";
+  });
+
+  // ================== INIT ==================
+  (function init() {
+    populateDeckSelect();
+    updateUIFromState();
+  })();
+</script>
+</body>
+</html>
