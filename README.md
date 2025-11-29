@@ -10,7 +10,7 @@ This repository offers both high-level conceptual introductions and rigorous tec
 
 ---
 
-## **📚 Document Overview**
+## **Document Overview**
 
 Below is a guide to each document in the repository and how it fits into the overall explanatory architecture.
 
@@ -135,25 +135,29 @@ This is a more compact technical reference than the full monograph, designed for
 
 ---
 
-## **🧭 How to Navigate the Repository**
+## **How to Navigate the Repository**
 
 For a smooth learning experience:
 
 1. **Start here** if you want intuition:
-   👉 `blog-post.md` → `explanatory-text.md`
 
-2. **Start here** if you want structure and definitions:
-   👉 `briefing-doc.md` → `concept-breakdown.md`
+    `blog-post.md` → `explanatory-text.md`
 
-3. **Start here** if you want formal mathematics:
-   👉 `technical-whitepaper.md` → `research-monograph.md`
+3. **Start here** if you want structure and definitions:
 
-4. **Start here** if you’re teaching or organizing a seminar:
-   👉 `study-guide.md`
+    `briefing-doc.md` → `concept-breakdown.md`
+
+4. **Start here** if you want formal mathematics:
+
+    `technical-whitepaper.md` → `research-monograph.md`
+
+5. **Start here** if you’re teaching or organizing a seminar:
+
+    `study-guide.md`
 
 ---
 
-## **📌 Core Idea in One Sentence**
+## **Core Idea in One Sentence**
 
 All persistent forms of structure, agency, and meaning in the universe are the fixed points of a single composite operator
 [
@@ -163,7 +167,7 @@ acting on a continuous semantic field—the **Relativistic Scalar–Vector Plenu
 
 ---
 
-## **📂 Repository Purpose**
+## **Repository Purpose**
 
 This repository serves as:
 
@@ -174,7 +178,7 @@ This repository serves as:
 
 ---
 
-## **🤝 Contributing**
+## **Contributing**
 
 Feedback, discussion, and collaboration are welcome.
 Please open an issue or submit a pull request with improvements, questions, or extensions.
